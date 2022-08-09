@@ -1,0 +1,99 @@
+#  In Terminal (normal) move using ls & cd to the folder containing all fastq.gz files
+#  Run the following command to unzip them all
+  gzip -d $(find ./ -type f -name '*.gz')
+
+#  Then use the following to move them all into one directory automatically
+  find /scratch/groups/caf/Stinson_Feb22_16S/Stinson_fastq -name '*fastq.gz' -exec cp {} /scratch/users/kjavi/stinson2 \;
+
+#  Rename all files to remove characters not allowed (: - /) but be warned, this may result in names disappearing
+#  To circumvent, can leave dash and then change (find + replace) in resulting .files
+  
+#  Open mothur, prep files for processing and make contigs (Start with recent plate, GGF# 2706)
+  make.file(inputdir=/scratch/groups/caf/Stinson_Feb22_16S, type=fastq, prefix=stinson)
+#  Check ".files" file in text editor to be sure names are right (remove : - / if remaining)
+
+# Ensure you have access to silva files  
+  
+  set.dir(input=/scratch/groups/caf/Stinson_Feb22_16S/Stinson_fastq)
+
+  make.contigs(file=stinson.files, processors=8)
+
+  summary.seqs(fasta=stinson.trim.contigs.fasta)
+
+#Move resulting file out of FASTQ folder	
+
+  set.dir(input=/scratch/groups/caf/Stinson_Feb22_16S)	
+
+#Quality screen contigs, reduce to unique seqs only	
+  screen.seqs(fasta=stinson.trim.contigs.fasta, summary=stinson.trim.contigs.summary, maxambig=0, maxlength=450)
+
+  unique.seqs(fasta=stinson.trim.contigs.good.fasta)
+
+  # make.group(fasta=stinson.trim.contigs.good.fasta, groups=sand-seawater-seawater-pc-pore)
+  
+  # split.groups(fasta=stinson.trim.contigs.fasta, count=stinson.trim.contigs.count_table)
+  
+  # list.seqs(count=stinson.contigs.SVBlank.count_table)
+  # list.seqs(count=stinson.contigs.ZymoMock_PC.count_table)
+  
+  count.seqs(name=stinson.trim.contigs.good.names, group=stinson.contigs.good.groups)
+
+  summary.seqs(count=stinson.trim.contigs.good.count_table, fasta=stinson.trim.contigs.good.unique.fasta)
+  
+  # rename.file(input=silva.bacteria.pcr.fasta, new=silva.v4.fasta)
+
+  # find coordiantes for v4v5 regions
+  align.seqs(fasta=ecoliv4.fasta, reference=silva.nr_v138.v4v5.align)
+  summary.seqs(fasta=ecoliv4.align)
+  
+  # coordinates for v4v5 regions
+  pcr.seqs(fasta=silva.nr_v138.v4v5.align, start=1781, end=11456, keepdots=F)
+  
+  rename.file(input=silva.nr_v138.v4v5.pcr.align, new=silva.v4v5.align)
+
+  #Align seqs - using reduced v4v5 alignment generated from pcr sequences
+  align.seqs(fasta=stinson.trim.contigs.good.unique.fasta, reference=silva.v4v5.fasta, processors=32)
+  
+  # Use start and end numbers from table in screen.seqs command
+  summary.seqs(fasta=stinson.trim.contigs.good.unique.align, count=stinson.trim.contigs.good.count_table)
+
+  # Finalize trimming
+  screen.seqs(fasta=stinson.trim.contigs.good.unique.align, count=stinson.trim.contigs.good.count_table, summary=stinson.trim.contigs.good.unique.summary, start=1, end=7802, maxhomop=8)
+
+  filter.seqs(fasta=stinson.trim.contigs.good.unique.good.align, vertical=T, trump=.)
+
+  unique.seqs(fasta=stinson.trim.contigs.good.unique.good.filter.fasta, count=stinson.trim.contigs.good.good.count_table)
+
+  summary.seqs(fasta=stinson.trim.contigs.good.unique.good.filter.unique.fasta, count=stinson.trim.contigs.good.unique.good.filter.count_table)
+
+
+#Pre-cluster, remove chimeras:
+  
+  pre.cluster(fasta=stinson.trim.contigs.good.unique.good.filter.unique.fasta, count=stinson.trim.contigs.good.unique.good.filter.count_table, diffs=2)
+
+  # chimera.vsearch(fasta=stinson.trim.contigs.good.unique.good.filter.unique.precluster.fasta, count=stinson.trim.contigs.good.unique.good.filter.unique.precluster.count_table, dereplicate=t)
+  chimera.vsearch(fasta=stinson.trim.contigs.good.unique.good.filter.unique.precluster.fasta, reference=silva.v4v5.fasta, dereplicate=t, removechimeras=f)
+  # remove.seqs(fasta=stinson.trim.contigs.good.unique.good.filter.unique.precluster.fasta, accnos=stinson.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.accnos)
+  remove.seqs(fasta=stinson.trim.contigs.good.unique.good.filter.unique.precluster.fasta, accnos=stinson.trim.contigs.good.unique.good.filter.unique.precluster.ref.vsearch.accnos)
+  
+  
+  summary.seqs(fasta=stinson.trim.contigs.good.unique.good.filter.unique.precluster.pick.fasta, count=stinson.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.count_table)
+
+###New Silva v138 Version for Comparison:
+#classify.seqs(fasta=mba.trim.contigs.good.unique.good.filter.unique.precluster.pick.fasta, count=mba.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.count_table, reference=silva.nr_v138.v4v5.align, taxonomy=silva.nr_v138.tax, cutoff=80) ##Used dataset of uniqued silva reads (other too much memory):
+  #classify.seqs(fasta=stinson.trim.contigs.good.unique.good.filter.unique.precluster.pick.fasta, count=stinson.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.count_table, reference=silva.nr_v138.v4v5.unique.align, taxonomy=silva.nr_v138.unique.tax, cutoff=80, processors=24)
+  classify.seqs(fasta=stinson.trim.contigs.good.unique.good.filter.unique.precluster.pick.fasta, count=stinson.trim.contigs.good.unique.good.filter.unique.precluster.count_table, reference=silva.nr_v138.v4v5.unique.align, taxonomy=silva.nr_v138.unique.tax, cutoff=80)
+  
+  remove.lineage(fasta=stinson.trim.contigs.good.unique.good.filter.unique.precluster.pick.fasta, count=stinson.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.count_table, taxonomy=stinson.trim.contigs.good.unique.good.filter.unique.precluster.pick.nr_v138.wang.taxonomy, taxon=Chloroplast-Mitochondria-unknown-Eukaryota)
+
+  summary.tax(taxonomy=stinson.trim.contigs.good.unique.good.filter.unique.precluster.pick.nr_v138.wang.pick.taxonomy, count=stinson.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.count_table)
+  
+  summary.seqs(fasta=stinson.trim.contigs.good.unique.good.filter.unique.precluster.pick.pick.fasta, count=stinson.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.count_table)
+
+seff 
+#####Probably want to run these on Farmshare/Sherlock...#####
+
+#Make OTUs - first try cluster.split (faster, can try traditional approach later if size is sufficiently small)
+  cluster.split(fasta=stinson.trim.contigs.good.unique.good.filter.unique.precluster.pick.pick.v132.fasta, count=stinson.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.v132.count_table, taxonomy=mba.trim.contigs.good.unique.good.filter.unique.precluster.pick.nr_v132.wang.pick.taxonomy, splitmethod=classify, taxlevel=4, cutoff=0.03, cluster=f, processors=24)
+#use cluster=f to generate a file, in case it crashes or if RAM limitations (can reduce # processors for second step
+  cluster.split(file=stinson.trim.contigs.good.unique.good.filter.unique.precluster.pick.pick.file, cutoff=0.03, processors=24)
