@@ -1,50 +1,58 @@
-#  In Terminal (normal) move using ls & cd to the folder containing all fastq.gz files
-#  Run the following command to unzip them all
-  gzip -d $(find ./ -type f -name '*.gz')
+file_location <- "Directory containing fastq.gz files"
+inputdirectory <- "New input directory"
+name <- "One-word prefix name for files. Ex. stinson, mba, etc."
 
-#  Then use the following to move them all into one directory automatically
-  find /scratch/groups/caf/Stinson_Feb22_16S/Stinson_fastq -name '*fastq.gz' -exec cp {} /scratch/users/kjavi/stinson2 \;
+# In Terminal move all fastq.g files into one directory 
+find file_location -name '*fastq.gz' -exec cp {} input_directory \;
 
-#  Rename all files to remove characters not allowed (: - /) but be warned, this may result in names disappearing
-#  To circumvent, can leave dash and then change (find + replace) in resulting .files
+# Then run the following command to unzip them all
+gzip -d $(find ./ -type f -name '*.gz')
+
+# Rename all files to remove characters not allowed (: - /) but be warned, this may result in names disappearing
+# To circumvent, can leave dash and then change (find + replace) in resulting .files
   
-#  Open mothur, prep files for processing and make contigs (Start with recent plate, GGF# 2706)
-  make.file(inputdir=/scratch/groups/caf/Stinson_Feb22_16S, type=fastq, prefix=stinson)
-#  Check ".files" file in text editor to be sure names are right (remove : - / if remaining)
+# Prep files for processing and make contigs
+make.file(inputdir=inputdirectory, type=fastq, prefix=name)
+# Check ".files" file in text editor to be sure names are right (remove : - / if remaining)
 
 # Ensure you have access to silva files  
+set.dir(input=inputdir)
+
+# Adjust processor numbers as needed. If too small, Ctrl + C out of the command to increase number
+make.contigs(file=paste0(name,".files"), processors=8))
+  # Files listed under a command indicate they are outputs of it
+  # {name}.trim.contigs.fasta, {name}.scrap.contigs.fasta, {name}.contigs_report, {name}.contigs.count_table
   
-  set.dir(input=/scratch/groups/caf/Stinson_Feb22_16S/Stinson_fastq)
-
-  make.contigs(file=stinson.files, processors=8)
-
-  summary.seqs(fasta=stinson.trim.contigs.fasta)
-
-#Move resulting file out of FASTQ folder	
-
-  set.dir(input=/scratch/groups/caf/Stinson_Feb22_16S)	
-
+summary.seqs(fasta=paste0(name,".stinson.trim.contigs.fasta"))
+  # {name}.trim.contigs.summary
+  
+  
 #Quality screen contigs, reduce to unique seqs only	
-  screen.seqs(fasta=stinson.trim.contigs.fasta, summary=stinson.trim.contigs.summary, maxambig=0, maxlength=450)
+screen.seqs(fasta=paste0(name,".trim.contigs.fasta"), summary=paste0(name,".trim.contigs.summary"), maxambig=0, maxlength=450)
+  # {name}.trim.contigs.good.summary, {name}.trim.contigs.good.fasta, {name}.trim.contigs.bad.accnos
 
-  unique.seqs(fasta=stinson.trim.contigs.good.fasta)
+unique.seqs(fasta=paste0(name,".trim.contigs.good.fasta"))
+  # {name}.trim.contigs.good.unique.fasta, {name}.trim.contigs.good.count_table
 
-  # make.group(fasta=stinson.trim.contigs.good.fasta, groups=sand-seawater-seawater-pc-pore)
+
+  # make.group(fasta=paste0(name,".trim.contigs.good.fasta"), groups=sand-seawater-seawater-pc-pore)
   
   # split.groups(fasta=stinson.trim.contigs.fasta, count=stinson.trim.contigs.count_table)
   
   # list.seqs(count=stinson.contigs.SVBlank.count_table)
   # list.seqs(count=stinson.contigs.ZymoMock_PC.count_table)
   
-  count.seqs(name=stinson.trim.contigs.good.names, group=stinson.contigs.good.groups)
+  # count.seqs(name=stinson.trim.contigs.good.names, group=stinson.contigs.good.groups)
 
-  summary.seqs(count=stinson.trim.contigs.good.count_table, fasta=stinson.trim.contigs.good.unique.fasta)
+summary.seqs(count=paste0(name,".trim.contigs.good.count_table"), fasta=paste0(name,".trim.contigs.good.unique.fasta"))
+  #  {name}.trim.contigs.good.unique.summary 
   
   # rename.file(input=silva.bacteria.pcr.fasta, new=silva.v4.fasta)
 
-  # find coordiantes for v4v5 regions
-  align.seqs(fasta=ecoliv4.fasta, reference=silva.nr_v138.v4v5.align)
-  summary.seqs(fasta=ecoliv4.align)
+# find coordiantes for v4v5 regions
+# import 
+align.seqs(fasta=ecoliv4.fasta, reference=silva.nr_v138.v4v5.align)
+summary.seqs(fasta=ecoliv4.align)
   
   # coordinates for v4v5 regions
   pcr.seqs(fasta=silva.nr_v138.v4v5.align, start=1781, end=11456, keepdots=F)
@@ -58,7 +66,7 @@
   summary.seqs(fasta=stinson.trim.contigs.good.unique.align, count=stinson.trim.contigs.good.count_table)
 
   # Finalize trimming
-  screen.seqs(fasta=stinson.trim.contigs.good.unique.align, count=stinson.trim.contigs.good.count_table, summary=stinson.trim.contigs.good.unique.summary, start=1, end=7802, maxhomop=8)
+  screen.seqs(fasta=paste0(name,".trim.contigs.good.unique.align"), count=stinson.trim.contigs.good.count_table, summary=stinson.trim.contigs.good.unique.summary, start=1, end=7802, maxhomop=8)
 
   filter.seqs(fasta=stinson.trim.contigs.good.unique.good.align, vertical=T, trump=.)
 
