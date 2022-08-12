@@ -1,6 +1,7 @@
-#Instructions for running mothur on 16S rRNA sequencing of the v4 region.
+# Instructions for running mothur on 16S rRNA sequencing of the v4 region.
 
-*Finding region coordinates.* 
+**Finding region coordinates.**
+
 Prior to running the pipeline, find the coordinate for your region. I will show you how to do this for the v4v5 region.
 1) Locate your forward and reverse primers. Replace degenerates with any base pair option. 
   Ex. forward (w/ degenerates)= GTGYCAGCMGCCGCGGTAA         ->  forward (w/out degenerates)= GTGCCAGCAGCCGCGGTAA
