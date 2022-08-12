@@ -4,6 +4,7 @@
 
 Prior to running the pipeline, find the coordinate for your region. I will show you how to do this for the v4v5 region.
 1) Locate your forward and reverse primers. Replace degenerates with any base pair option. 
+  
   Ex. forward (w/ degenerates)= GTGYCAGCMGCCGCGGTAA
       forward (w/out degenerates)= GTGCCAGCAGCCGCGGTAA
       
@@ -22,6 +23,7 @@ Prior to running the pipeline, find the coordinate for your region. I will show 
 7) Click "Get Primers".
 8) In a line that looks similiar to the following:
    >CP101983.1 Escherichia coli strain STEC1096 chromosome, complete genome
+   
    copy the alphanumeric cominbation up to the dot. In this case, that would be CP101983.
 9) Go to https://www.ncbi.nlm.nih.gov/ and copy this string into the search bar.
 10) Click on the result and then select "fasta".
