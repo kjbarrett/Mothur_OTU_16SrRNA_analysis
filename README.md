@@ -6,6 +6,7 @@ Prior to running the pipeline, find the coordinate for your region. I will show 
 1) Locate your forward and reverse primers. Replace degenerates with any base pair option. 
   
   Ex. 
+      
       forward (w/ degenerates)= GTGYCAGCMGCCGCGGTAA
       forward (w/out degenerates)= GTGCCAGCAGCCGCGGTAA
       
@@ -31,3 +32,8 @@ Prior to running the pipeline, find the coordinate for your region. I will show 
 11) Use ctrl/command + f to locate your forward primer. Start there and then copy the ~400-500 pairs that follow and paste into a text editor.
 12) Use ctrl/command + f to locate your reverse complement primer within this text. Some of the sequences may be mismatched, so try searching for different sections of the primer if you cannot find the whole one at first.
 13) Once you locate the reverse complement primer, check the length of the section from the forward primer to there. It would be around 300 base pairs. Copy this section over to a file called ecoliv4.fasta. You will need this eventually in the pipeline.
+
+
+**Downloading reference files**
+1) Go to https://mothur.org/wiki/silva_reference_files/
+2) Download the latest download full-length sequences and taxonomy references, move it your working directory, and unzip it. This should generate a .tax and .align file.
