@@ -4,8 +4,11 @@
 
 Prior to running the pipeline, find the coordinate for your region. I will show you how to do this for the v4v5 region.
 1) Locate your forward and reverse primers. Replace degenerates with any base pair option. 
-  Ex. forward (w/ degenerates)= GTGYCAGCMGCCGCGGTAA         ->  forward (w/out degenerates)= GTGCCAGCAGCCGCGGTAA
-      reverse_806r (w/ degenerates)= GGACTACNVGGGTWTCTAAT   ->  reverse_806r (w/out degenerates)= GGACTACAGGGGTATCTAAT
+  Ex. forward (w/ degenerates)= GTGYCAGCMGCCGCGGTAA
+      forward (w/out degenerates)= GTGCCAGCAGCCGCGGTAA
+      
+      reverse_806r (w/ degenerates)= GGACTACNVGGGTWTCTAAT
+      reverse_806r (w/out degenerates)= GGACTACAGGGGTATCTAAT
 2) Find the reverse complement of your reverse primer. To do this, first find the complemenent of your reverse primer.     
     GGACTACAGGGGTATCTAAT (reverse primer)
     CCTGATGTCCCCATAGATTA (complement of reverse primer)
