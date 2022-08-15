@@ -7,11 +7,13 @@ Prior to running the pipeline, find the coordinate for your region. I will show 
   
   Ex. 
       
-      forward (w/ degenerates)= GTGYCAGCMGCCGCGGTAA
-      forward (w/out degenerates)= GTGCCAGCAGCCGCGGTAA
+      > forward (w/ degenerates)= GTGYCAGCMGCCGCGGTAA
       
-      reverse_806r (w/ degenerates)= GGACTACNVGGGTWTCTAAT
-      reverse_806r (w/out degenerates)= GGACTACAGGGGTATCTAAT
+      > forward (w/out degenerates)= GTGCCAGCAGCCGCGGTAA
+      
+      > reverse_806r (w/ degenerates)= GGACTACNVGGGTWTCTAAT
+       
+      > reverse_806r (w/out degenerates)= GGACTACAGGGGTATCTAAT
 2) Find the reverse complement of your reverse primer. To do this, first find the complemenent of your reverse primer.     
     > GGACTACAGGGGTATCTAAT (reverse primer)
     
