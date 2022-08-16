@@ -18,45 +18,43 @@ make.file(inputdir=inputdirectory, type=fastq, prefix=name)
 # Ensure you have access to silva files  
 set.dir(input=inputdir)
 
-# Adjust processor numbers as needed. If too small, Ctrl + C out of the command to increase number
-make.contigs(file=paste0(name,".files"), processors=8))
-  # Files listed under a command indicate they are outputs of it
-  # {name}.trim.contigs.fasta, {name}.scrap.contigs.fasta, {name}.contigs_report, {name}.contigs.count_table
+# Adjust processor numbers as needed. If insufficient, Ctrl + C out of the command and increase number
+make.contigs(file=paste0(name,".files"), processors=8)
+  ### OUTPUT FILES: {name}.trim.contigs.fasta, {name}.scrap.contigs.fasta, {name}.contigs_report, {name}.contigs.count_table
   
-summary.seqs(fasta=current))
-  # {name}.trim.contigs.summary
-  
+summary.seqs(fasta=current, count=current)
+  ### OUTPUT FILE: {name}.trim.contigs.summary
   
 # Quality screen contigs, reduce to unique seqs only	
-screen.seqs(fasta=paste0(name,".trim.contigs.fasta"), summary=paste0(name,".trim.contigs.summary"), maxambig=0, maxlength=450)
-  # {name}.trim.contigs.good.summary, {name}.trim.contigs.good.fasta, {name}.trim.contigs.bad.accnos
+screen.seqs(fasta=paste0(name,".trim.contigs.fasta"), count=paste0(name,".contigs.count_table"), summary=paste0(name,".trim.contigs.summary"), maxambig=0, maxlength=450)
+  ### OUTPUT FILES: {name}.trim.contigs.good.summary, {name}.trim.contigs.good.fasta, {name}.trim.contigs.bad.accnos, {name}.contigs.good.count_table
 
-unique.seqs(fasta=paste0(name,".trim.contigs.good.fasta"))
-  # {name}.trim.contigs.good.unique.fasta, {name}.trim.contigs.good.count_table
+unique.seqs(fasta=paste0(name,".trim.contigs.good.fasta"), count=paste0(name,".contigs.good.count_table"))
+  ### OUTPUT FILES: {name}.trim.contigs.good.unique.fasta, {name}.trim.contigs.good.count_table
 
 summary.seqs(count=current, fasta=current)
-  #  {name}.trim.contigs.good.unique.summary 
+  ### OUTPUT FILE: {name}.trim.contigs.good.unique.summary 
 
-# Find coordiantes for your region(s). If you do not already have ecoliv4.fasta in your directory, follow the instructions in the README to generate it.
-align.seqs(fasta=ecoliv4.fasta, reference=silva.nr_v138.v4v5.align)
-  # ecoliv4.align, ecoliv4.align_report
+# Find coordiantes for your region(s). If you do not already have ecoliv4.fasta and silva.seed_v138_1.align in your directory, follow the instructions in the README to generate them.
+align.seqs(fasta=ecoliv4.fasta, reference=silva.seed_v138_1.align)
+  ### OUTPUT FILES: ecoliv4.align, ecoliv4.align_report
 
 summary.seqs(fasta=ecoliv4.align)
-  # ecoliv4.summary
+  ### OUTPUT FILE: ecoliv4.summary
   
-# Use the start and end coordinates listed in the summary report as the cooresponding parameters for pcr.seqs. 
-pcr.seqs(fasta=silva.nr_v138.v4v5.align, start=1781, end=11456, keepdots=F)
-  # silva.nr_v138.v4v5.pcr.align, silva.nr_v138.v4v5.bad.accnos, silva.nr_v138.v4v5.scrap.pcr.align
+# Use the start and end coordinates listed in the summary report as the cooresponding parameters for pcr.seqs 
+pcr.seqs(fasta=silva.seed_v138_1.align, start=1781, end=11456, keepdots=F)
+  ### OUTPUT FILES: silva.nr_v138.v4v5.pcr.align, silva.nr_v138.v4v5.bad.accnos, silva.nr_v138.v4v5.scrap.pcr.align
   
 rename.file(input=silva.nr_v138.v4v5.pcr.align, new=silva.v4v5.align)
-  # silva.v4v5.align
+  ### OUTPUT FILE: silva.v4v5.align
 
-## START HERE
 # Align seqs - using reduced v4v5 alignment generated from pcr sequences
-  align.seqs(fasta=paste0(name,".trim.contigs.good.unique.fasta"), reference=silva.v4v5.fasta, processors=32)
+align.seqs(fasta=paste0(name,".trim.contigs.good.unique.fasta"), count=paste0(name,".trim.contigs.good.count_table"), reference=silva.seed_v138_1.align, processors=32)
+  ### OUTPUT FILES: 
   
-  # Use start and end numbers from table in screen.seqs command
-  summary.seqs(fasta=current, count=current)
+# Use start and end numbers from table in screen.seqs command
+summary.seqs(fasta=current, count=current)
 
   # Finalize trimming. Use the start and end coordinates from the summary as parameters for screen.seqs. 
   screen.seqs(fasta=paste0(name,".trim.contigs.good.unique.align"), count=stinson.trim.contigs.good.count_table, summary=stinson.trim.contigs.good.unique.summary, start=1, end=7802, maxhomop=8)
