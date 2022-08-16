@@ -1,0 +1,20 @@
+#! /bin/bash
+#
+#SBATCH --job-name= ### Job name
+#
+#SBATCH -c 8  ### Adjust
+#SBATCH --time=8:00:00 ### Adjust
+#SBATCH --mem=50G ### Adjust
+
+#SBATCH --partition=serc ### Update to hpc specifications
+
+#SBATCH --mail-user=user@stanford.edu ### Update to be user specific
+#SBATCH --mail-type=BEGIN,END,FAIL
+#SBATCH --output=/scratch/users/kjavi/stinsonfinal/Logs/%x-%j.out ### Update to be user specific
+
+#SBATCH --export=ALL
+
+###Before running, have ampliseq conda environment active by running "conda activate /home/groups/caf/ampliseq"
+source /etc/profile.d/http_proxy.sh
+
+mothur Logs/{name}.txt ### Create a .txt file with mothur command
