@@ -41,4 +41,6 @@ Prior to running the pipeline, find the coordinate for your region. I will show 
 
 **Downloading reference files**
 1) Go to https://mothur.org/wiki/silva_reference_files/
-2) Download the latest download full-length sequences and taxonomy references, move it your working directory, and unzip it. This should generate a .tax and .align file.
+2) Download the latest seed database file, move it your working directory, and unzip it. This should generate a .align file with a name similar to 
+
+> silva.seed_v138_1.align
