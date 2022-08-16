@@ -81,11 +81,11 @@ rename.file(input=silva.nr_v138.v4v5.pcr.align, new=silva.v4v5.align)
   summary.seqs(fasta=current, count=current)
 
 ###New Silva v138 Version for Comparison:
-#classify.seqs(fasta=mba.trim.contigs.good.unique.good.filter.unique.precluster.pick.fasta, count=mba.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.count_table, reference=silva.nr_v138.v4v5.align, taxonomy=silva.nr_v138.tax, cutoff=80) ##Used dataset of uniqued silva reads (other too much memory):
-  #classify.seqs(fasta=stinson.trim.contigs.good.unique.good.filter.unique.precluster.pick.fasta, count=stinson.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.count_table, reference=silva.nr_v138.v4v5.unique.align, taxonomy=silva.nr_v138.unique.tax, cutoff=80, processors=24)
-  classify.seqs(fasta=stinson.trim.contigs.good.unique.good.filter.unique.precluster.pick.fasta, count=stinson.trim.contigs.good.unique.good.filter.unique.precluster.count_table, reference=silva.nr_v138.v4v5.unique.align, taxonomy=silva.nr_v138.unique.tax, cutoff=80)
+
+classify.seqs(fasta=stinson.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.fasta, count=stinson.trim.contigs.good.unique.good.filter.unique.precluster.count_table, reference=silva.nr_v138.v4v5.unique.align, taxonomy=silva.nr_v138.unique.tax, cutoff=80)
   
-  remove.lineage(fasta=stinson.trim.contigs.good.unique.good.filter.unique.precluster.pick.fasta, count=stinson.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.count_table, taxonomy=stinson.trim.contigs.good.unique.good.filter.unique.precluster.pick.nr_v138.wang.taxonomy, taxon=Chloroplast-Mitochondria-unknown-Eukaryota)
+remove.lineage(fasta=stinson.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.fasta, count=stinson.trim.contigs.good.unique.good.filter.unique.precluster.count_table, taxonomy=stinson.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.unique.wang.taxonomy, taxon=Chloroplast-Mitochondria-unknown-Eukaryota)
+  # stinson.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.unique.wang.pick.taxonomy, stinson.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.unique.wang.accnos, stinson.trim.contigs.good.unique.good.filter.unique.precluster.pick.count_table, stinson.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.fasta
 
   summary.tax(taxonomy=stinson.trim.contigs.good.unique.good.filter.unique.precluster.pick.nr_v138.wang.pick.taxonomy, count=stinson.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.count_table)
   
