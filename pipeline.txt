@@ -44,31 +44,36 @@ summary.seqs(fasta=ecoliv4.align)
   
 # Use the start and end coordinates listed in the summary report as the cooresponding parameters for pcr.seqs 
 pcr.seqs(fasta=silva.seed_v138_1.align, start=1781, end=11456, keepdots=F)
-  ### OUTPUT FILES: silva.nr_v138.v4v5.pcr.align, silva.nr_v138.v4v5.bad.accnos, silva.nr_v138.v4v5.scrap.pcr.align
+  ### OUTPUT FILES: silva.seed_v138_1..pcr.align, silva.seed_v138_1..bad.accnos, silva.seed_v138_1.scrap.pcr.align
   
-rename.file(input=silva.nr_v138.v4v5.pcr.align, new=silva.v4v5.align)
+rename.file(input=silva.seed_v138_1.pcr.align, new=silva.v4v5.align)
   ### OUTPUT FILE: silva.v4v5.align
 
 # Align seqs - using reduced v4v5 alignment generated from pcr sequences
 align.seqs(fasta=paste0(name,".trim.contigs.good.unique.fasta"), count=paste0(name,".trim.contigs.good.count_table"), reference=silva.seed_v138_1.align, processors=32)
-  ### OUTPUT FILES: 
+  ### OUTPUT FILES: {name}.trim.contigs.good.unique.align, {name}.trim.contigs.good.unique.align_report, {name}.trim.contigs.good.unique.flip.accnos
   
 # Use start and end numbers from table in screen.seqs command
 summary.seqs(fasta=current, count=current)
+  ### OUTPUT FILE: {name}.trim.contigs.good.unique.summary
 
-  # Finalize trimming. Use the start and end coordinates from the summary as parameters for screen.seqs. 
-  screen.seqs(fasta=paste0(name,".trim.contigs.good.unique.align"), count=stinson.trim.contigs.good.count_table, summary=stinson.trim.contigs.good.unique.summary, start=1, end=7802, maxhomop=8)
+# Finalize trimming. Use the start and end coordinates from the summary as parameters for screen.seqs. 
+screen.seqs(fasta=paste0(name,".trim.contigs.good.unique.align"), count=paste0(name,".trim.contigs.good.count_table"), summary=stinson.trim.contigs.good.unique.summary, start=1, end=7802, maxhomop=8)
+  ### OUTPUT FILES: {name}.trim.contigs.good.unique.good.summary, {name}.trim.contigs.good.unique.good.align, {name}.trim.contigs.good.unique.bad.accnos, {name}.trim.contigs.good.good.count_table
 
-  filter.seqs(fasta=stinson.trim.contigs.good.unique.good.align, vertical=T, trump=.)
+filter.seqs(fasta=paste0(name,".trim.contigs.good.unique.good.align"), vertical=T, trump=.)
+  ### OUTPUT FILES: {name}.filter, {name}.trim.contigs.good.unique.good.filter.fasta
 
-  unique.seqs(fasta=stinson.trim.contigs.good.unique.good.filter.fasta, count=stinson.trim.contigs.good.good.count_table)
+unique.seqs(fasta=paste0(name,".trim.contigs.good.unique.good.filter.fasta"), count=paste0(name,".trim.contigs.good.good.count_table"))
+  ### OUTPUT FILES: {name}.trim.contigs.good.unique.good.filter.unique.fasta, {name}.trim.contigs.good.unique.good.filter.count_table
 
-  summary.seqs(fasta=current, count=current)
-
+summary.seqs(fasta=current, count=current)
+  ### OUTPUT FILES: {name}.trim.contigs.good.unique.good.filter.unique.summary
 
 #Pre-cluster, remove chimeras:
   
-  pre.cluster(fasta=stinson.trim.contigs.good.unique.good.filter.unique.fasta, count=stinson.trim.contigs.good.unique.good.filter.count_table, diffs=2)
+pre.cluster(fasta=paste0(name,".trim.contigs.good.unique.good.filter.unique.fasta"), count=paste0(name,".trim.contigs.good.unique.good.filter.count_table"), diffs=2)
+  ### OUTPUT FILES:
 
   # chimera.vsearch(fasta=stinson.trim.contigs.good.unique.good.filter.unique.precluster.fasta, count=stinson.trim.contigs.good.unique.good.filter.unique.precluster.count_table, dereplicate=t)
   chimera.vsearch(fasta=stinson.trim.contigs.good.unique.good.filter.unique.precluster.fasta, reference=silva.v4v5.fasta, dereplicate=t, removechimeras=f)
