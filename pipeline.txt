@@ -70,15 +70,13 @@ pre.cluster(fasta=paste0(name,".trim.contigs.good.unique.good.filter.unique.fast
 chimera.vsearch(fasta=paste0(name,".trim.contigs.good.unique.good.filter.unique.precluster.fasta"), count=paste0(name,".trim.contigs.good.unique.good.filter.unique.precluster.count_table"), dereplicate=t)
   ### OUTPUT FILES: {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.count_table, {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.chimeras, {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.accnos, {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.fasta
   
-# unique.seqs(fasta=paste0(name,".trim.contigs.good.unique.good.filter.unique.precluster.pick.fasta)
-  
 summary.seqs(fasta=current, count=current)
   ### OUTPUT FILE: {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.summary
 
 ### INCLUDE INSTRUCTIONS FOR GETTING REFERENCE AND TAX FILES BELOW ###
 
 # Classify seqs, remove 'undesirables'. Use submission script. 
-classify.seqs(fasta=paste0(name,".trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.fasta"), count=paste0(name,".trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.count_table"), reference=paste0(name,".nr_v138.v4v5.unique.align"), taxonomy=silva.seed_v138_1.unique.tax, cutoff=80)
+classify.seqs(fasta=paste0(name,".trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.fasta"), count=paste0(name,".trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.count_table"), reference=silva.nr_v138_1.align, taxonomy=silva.nr_v138_1.tax, cutoff=80)
   ### OUTPUT FILES: {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.unique.wang.flip.accnos, {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.unique.wang.taxonomy, {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.unique.wang.tax.summary
   
 remove.lineage(fasta=paste0(name,".trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.fasta"), count=paste0(name,".trim.contigs.good.unique.good.filter.unique.precluster.count_table"), taxonomy=paste0(name,".trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.unique.wang.taxonomy"), taxon=Chloroplast-Mitochondria-unknown-Eukaryota)
@@ -87,7 +85,7 @@ remove.lineage(fasta=paste0(name,".trim.contigs.good.unique.good.filter.unique.p
 summary.tax(taxonomy=paste0(name,".trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.unique.wang.pick.taxonomy"), count=paste0(name,".trim.contigs.good.unique.good.filter.unique.precluster.pick.count_table"))
   ### OUTPUT FILE: {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.unique.wang.pick.tax.summary
   
-summary.seqs(fasta=current, count=current)
+summary.seqs(fasta=stinson.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.fasta, count=stinson.trim.contigs.good.unique.good.filter.unique.precluster.pick.count_table)
   ### OUTPUT FILE: 
 
 seff 
