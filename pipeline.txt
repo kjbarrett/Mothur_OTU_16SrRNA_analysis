@@ -1,15 +1,6 @@
 file_location <- "Directory containing fastq.gz files"
 inputdirectory <- "New input directory"
 name <- "One-word prefix name for files. Ex. stinson, mba, etc."
-
-# In Terminal move all fastq.g files into one directory 
-find file_location -name '*fastq.gz' -exec cp {} input_directory \;
-
-# Then run the following command to unzip them all
-gzip -d $(find ./ -type f -name '*.gz')
-
-# Rename all files to remove characters not allowed (: - /) but be warned, this may result in names disappearing
-# To circumvent, can leave dash and then change (find + replace) in resulting .files
   
 # Prep files for processing and make contigs
 make.file(inputdir=inputdirectory, type=fastq, prefix=name)
