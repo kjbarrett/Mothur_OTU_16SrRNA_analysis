@@ -90,17 +90,10 @@ summary.seqs(fasta=paste0(name,".trim.contigs.good.unique.good.filter.unique.pre
 
 #Make OTUs
 dist.seqs(fasta=paste0(name,".trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.fasta"), count=paste0(name,".trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.count_table"), cutoff=0.03)
-  ### OUTPUT FILES: {name}.
+  ### OUTPUT FILES: {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.dist
   
-cluster(column=stinson.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.dist, count=stinson.trim.contigs.good.unique.good.filter.unique.precluster.pick.count_table)
-  ### OUTPUT FILES: 
+cluster(column=paste0(name,".trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.dist"), count=paste0(name,".trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.count_table"))
+  ### OUTPUT FILES: {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.opti_mcc.list, {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.opti_mcc.steps, {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.opti_mcc.sensspec
   
 
-
-#Make OTUs - first try cluster.split (faster, can try traditional approach later if size is sufficiently small)
-# cluster.split(fasta=stinson.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.fasta, count=stinson.trim.contigs.good.unique.good.filter.unique.precluster.pick.count_table, taxonomy=stinson.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.unique.wang.taxonomy, method=opti, taxlevel=4, cutoff=0.03, cluster=f, processors=24)
-
-# cluster.split(fasta=stinson.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.fasta, count=stinson.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.count_table, taxonomy=stinson.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.nr_v138_1.wang.pick.taxonomy, method=opti, taxlevel=4, cutoff=0.03, cluster=f, processors=24)
-
-#use cluster=f to generate a file, in case it crashes or if RAM limitations (can reduce # processors for second step
-  # cluster.split(file=stinson.trim.contigs.good.unique.good.filter.unique.precluster.pick.pick.file, cutoff=0.03, processors=24)
+get.oturep(column=stinson.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.dist, list=stinson.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.opti_mcc.list, count=stinson.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.count_table, fasta=slate20.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.fasta, cutoff=0.03, sorted=bin)
