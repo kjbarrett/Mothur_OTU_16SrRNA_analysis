@@ -94,14 +94,13 @@ dist.seqs(fasta=paste0(name,".trim.contigs.good.unique.good.filter.unique.preclu
   
 cluster(column=paste0(name,".trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.dist"), count=paste0(name,".trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.count_table"))
   ### OUTPUT FILES: {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.opti_mcc.list, {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.opti_mcc.steps, {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.opti_mcc.sensspec
-  
+
 # Get OTU Reps, export fasta files
+make.shared(list=paste0(name,".trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.opti_mcc.list"), count=paste0(name,".trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.count_table"), label=0.03)
+  ### OUTPUT FILES: {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.opti_mcc.shared
+  
+classify.otu(list=paste0(name,".trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.opti_mcc.list"), count=paste0(name,".trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.count_table"), taxonomy=paste0(name,".trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.nr_v138_1.wang.pick.taxonomy"), label=0.03)
+  ### OUTPUT FILES: {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.opti_mcc.0.03.cons.taxonomy, {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.opti_mcc.0.03.cons.tax.summary
+
 get.oturep(column=paste0(name,".trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.dist"), list=paste0(name,".trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.opti_mcc.list"), count=paste0(name,".trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.count_table"), fasta=paste0(name,".trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.fasta"), cutoff=0.03, sorted=bin)
-  ### OUTPUT FILES: {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.opti_mcc.0.03.rep.count_table, {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.opti_mcc.0.03.rep.fasta
-
-get.lineage(constaxonomy=stinson.taxonomy, shared=stinson.opti_mcc.shared, taxon=Archaea;, label=0.03)
-### OUTPUT FILES:
-
-get.lineage(taxonomy=slate20.taxonomy, taxon=Archaea;, fasta=slate20_oturep.fasta)
-
-	get.lineage(taxonomy=slate20.taxonomy, taxon=Archaea;Thaumarchaeota;, fasta=slate20_oturep.fasta)
+  ### OUTPUT FILES: {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.opti_mcc.0.03.rep.count_table, {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.opti_mcc.0.03.rep.fasta 
