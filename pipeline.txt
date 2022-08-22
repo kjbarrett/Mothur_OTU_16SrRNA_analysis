@@ -35,7 +35,7 @@ summary.seqs(fasta=ecoliv4.align)
   
 # Use the start and end coordinates listed in the summary report as the cooresponding parameters for pcr.seqs 
 pcr.seqs(fasta=silva.seed_v138_1.align, start=1781, end=11456, keepdots=F)
-  ### OUTPUT FILES: silva.seed_v138_1..pcr.align, silva.seed_v138_1..bad.accnos, silva.seed_v138_1.scrap.pcr.align
+  ### OUTPUT FILES: silva.seed_v138_1.pcr.align, silva.seed_v138_1.bad.accnos, silva.seed_v138_1.scrap.pcr.align
   
 rename.file(input=silva.seed_v138_1.pcr.align, new=silva.v4v5.align)
   ### OUTPUT FILE: silva.v4v5.align
