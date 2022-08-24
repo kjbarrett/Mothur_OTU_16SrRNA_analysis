@@ -65,14 +65,11 @@ summary.seqs(fasta=current, count=current)
 pre.cluster(fasta=paste0(name,".trim.contigs.good.unique.good.filter.unique.fasta"), count=paste0(name,".trim.contigs.good.unique.good.filter.count_table"), diffs=2)
   ### OUTPUT FILES: {names}.trim.contigs.good.unique.good.filter.unique.precluster.fasta, {names}.trim.contigs.good.unique.good.filter.unique.precluster.count_table
 
-
 chimera.vsearch(fasta=paste0(name,".trim.contigs.good.unique.good.filter.unique.precluster.fasta"), count=paste0(name,".trim.contigs.good.unique.good.filter.unique.precluster.count_table"), dereplicate=t)
   ### OUTPUT FILES: {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.count_table, {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.chimeras, {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.accnos, {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.fasta
   
 summary.seqs(fasta=current, count=current)
   ### OUTPUT FILE: {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.summary
-
-### INCLUDE INSTRUCTIONS FOR GETTING REFERENCE AND TAX FILES BELOW ###
 
 # Classify seqs, remove 'undesirables'. Use submission script. 
 classify.seqs(fasta=paste0(name,".trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.fasta"), count=paste0(name,".trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.count_table"), reference=silva.nr_v138_1.align, taxonomy=silva.nr_v138_1.tax, cutoff=80)
