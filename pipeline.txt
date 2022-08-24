@@ -1,4 +1,3 @@
-file_location <- "Directory containing fastq.gz files"
 inputdirectory <- "New input directory"
 name <- "One-word prefix name for files. Ex. stinson, mba, etc."
   
@@ -7,7 +6,7 @@ make.file(inputdir=inputdirectory, type=fastq, prefix=name)
 # Check ".files" file in text editor to be sure names are right (remove : - / if remaining)
 
 # Ensure you have access to silva files  
-set.dir(input=inputdir)
+set.dir(input=inputdirectory)
 
 # Adjust processor numbers as needed. If insufficient, Ctrl + C out of the command and increase number
 make.contigs(file=paste0(name,".files"), processors=8)
