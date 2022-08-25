@@ -1,0 +1,101 @@
+### Replace text between {} on lines 4, 8, & 11
+
+# Prep files for processing and make contigs
+make.file(inputdir={input directory}, type=fastq, prefix={name})    ### ADD INPUT DIRECTORY AND FILE NAMES
+# Check ".files" file in text editor to be sure names are right (remove : - / if remaining)
+
+# Ensure you have access to silva files  
+set.dir(input={input directory})          ### ADD INPUT DIRECTORY
+
+# Adjust processor numbers as needed. If insufficient, Ctrl + C out of the command and increase number
+make.contigs(file={name}.files, processors=8)     ### ADD NAME FROM LINE 4
+  ### OUTPUT FILES: {name}.trim.contigs.fasta, {name}.scrap.contigs.fasta, {name}.contigs_report, {name}.contigs.count_table
+  
+summary.seqs(fasta=current, count=current)
+  ### OUTPUT FILE: {name}.trim.contigs.summary
+  
+# Quality screen contigs, reduce to unique seqs only	
+screen.seqs(fasta=current, count=current, summary=current, maxambig=0, maxlength=450)
+  ### OUTPUT FILES: {name}.trim.contigs.good.summary, {name}.trim.contigs.good.fasta, {name}.trim.contigs.bad.accnos, {name}.contigs.good.count_table
+
+unique.seqs(fasta=current, count=current)
+  ### OUTPUT FILES: {name}.trim.contigs.good.unique.fasta, {name}.trim.contigs.good.count_table
+
+summary.seqs(count=current, fasta=current)
+  ### OUTPUT FILE: {name}.trim.contigs.good.unique.summary 
+
+# Find coordiantes for your region(s). If you do not already have ecoliv4.fasta and silva.seed_v138_1.align in your directory, follow the instructions in the README to generate them.
+align.seqs(fasta=ecoliv4.fasta, reference=silva.seed_v138_1.align)
+  ### OUTPUT FILES: ecoliv4.align, ecoliv4.align_report
+
+summary.seqs(fasta=ecoliv4.align)
+  ### OUTPUT FILE: ecoliv4.summary
+  
+# Use the start and end coordinates listed in the summary report as the cooresponding parameters for pcr.seqs 
+pcr.seqs(fasta=silva.seed_v138_1.align, start=1781, end=11456, keepdots=F)
+  ### OUTPUT FILES: silva.seed_v138_1.pcr.align, silva.seed_v138_1.bad.accnos, silva.seed_v138_1.scrap.pcr.align
+  
+rename.file(input=silva.seed_v138_1.pcr.align, new=silva.v4v5.align)
+  ### OUTPUT FILE: silva.v4v5.align
+
+# Align seqs - using reduced v4v5 alignment generated from pcr sequences
+align.seqs(fasta=current, count=current, reference=silva.seed_v138_1.align, processors=32)
+  ### OUTPUT FILES: {name}.trim.contigs.good.unique.align, {name}.trim.contigs.good.unique.align_report, {name}.trim.contigs.good.unique.flip.accnos
+  
+# Use start and end numbers from table in screen.seqs command
+summary.seqs(fasta=current, count=current)
+  ### OUTPUT FILE: {name}.trim.contigs.good.unique.summary
+
+# Finalize trimming. Use the start and end coordinates from the summary as parameters for screen.seqs. 
+screen.seqs(fasta=current, count=current, summary=current, start=1, end=7802, maxhomop=8)
+  ### OUTPUT FILES: {name}.trim.contigs.good.unique.good.summary, {name}.trim.contigs.good.unique.good.align, {name}.trim.contigs.good.unique.bad.accnos, {name}.trim.contigs.good.good.count_table
+
+filter.seqs(fasta=current, vertical=T, trump=.)
+  ### OUTPUT FILES: {name}.filter, {name}.trim.contigs.good.unique.good.filter.fasta
+
+unique.seqs(fasta=current, count=current)
+  ### OUTPUT FILES: {name}.trim.contigs.good.unique.good.filter.unique.fasta, {name}.trim.contigs.good.unique.good.filter.count_table
+
+summary.seqs(fasta=current, count=current)
+  ### OUTPUT FILES: {name}.trim.contigs.good.unique.good.filter.unique.summary
+
+#Pre-cluster, remove chimeras:
+  
+pre.cluster(fasta=current, count=current, diffs=2)
+  ### OUTPUT FILES: {names}.trim.contigs.good.unique.good.filter.unique.precluster.fasta, {names}.trim.contigs.good.unique.good.filter.unique.precluster.count_table
+
+chimera.vsearch(fasta=current, count=current, dereplicate=t)
+  ### OUTPUT FILES: {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.count_table, {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.chimeras, {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.accnos, {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.fasta
+  
+summary.seqs(fasta=current, count=current)
+  ### OUTPUT FILE: {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.summary
+
+# Classify seqs, remove 'undesirables'. Use submission script. 
+classify.seqs(fasta=current, count=current, reference=silva.nr_v138_1.align, taxonomy=silva.nr_v138_1.tax, cutoff=80)
+  ### OUTPUT FILES: {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.nr_v138_1.wang.flip.accnos, {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.nr_v138_1.wang.taxonomy, {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.nr_v138_1.wang.tax.summary
+  
+remove.lineage(fasta=current, count=current, taxonomy=current, taxon=Chloroplast-Mitochondria-unknown-Eukaryota)
+  ### OUTPUT FILES: {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.nr_v138_1.wang.pick.taxonomy, {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.nr_v138_1.wang.accnos, {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.count_table, {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.fasta
+
+summary.tax(taxonomy=current, count=current)
+  ### OUTPUT FILE: {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.nr_v138_1.wang.pick.tax.summary
+  
+summary.seqs(fasta=current, count=current)
+  ### OUTPUT FILE:{name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.summary
+
+# Make OTUs
+dist.seqs(fasta=current, count=current), cutoff=0.03)
+  ### OUTPUT FILES: {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.dist
+  
+cluster(column=current, count=current)
+  ### OUTPUT FILES: {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.opti_mcc.list, {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.opti_mcc.steps, {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.opti_mcc.sensspec
+
+# Get OTU Reps, export fasta files
+make.shared(list=current, count=current), label=0.03)
+  ### OUTPUT FILES: {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.opti_mcc.shared
+  
+classify.otu(list=current, count=current, taxonomy=current, label=0.03)
+  ### OUTPUT FILES: {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.opti_mcc.0.03.cons.taxonomy, {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.opti_mcc.0.03.cons.tax.summary
+
+get.oturep(column=current, list=current, count=current, fasta=current, cutoff=0.03, sorted=bin)
+  ### OUTPUT FILES: {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.opti_mcc.0.03.rep.count_table, {name}.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.opti_mcc.0.03.rep.fasta 
