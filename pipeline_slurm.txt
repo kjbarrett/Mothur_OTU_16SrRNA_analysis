@@ -1,4 +1,6 @@
-### Replace text between {} on lines 4, 8, & 11. Save as a .txt file for slurm script. Make sure your conda environment is active.
+### Replace text between {} on lines 4, 8, & 11. 
+### Save as a .txt file for slurm script. 
+### Make sure your conda environment is active.
 
 # Prep files for processing and make contigs
 make.file(inputdir={input directory}, type=fastq, prefix={name})    ### ADD INPUT DIRECTORY AND FILE NAMES
