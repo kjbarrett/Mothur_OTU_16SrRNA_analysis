@@ -50,3 +50,12 @@ Prior to running the pipeline, find the coordinate for your region. I will show 
 > silva.seed_v138_1.tax
 
 > silva.seed_v138_1.align
+
+
+**Thank you**
+Thank you to Dr. Bradley Tolar for providing the code for the mothur pipeline.
+Thank you to Jessica Bullington and Dr. Katie Langenfeld for providing the R notebook. 
+
+
+**Reference**
+Schloss PD et al. 2009. Introducing mothur: Open-source, platform-independent, community-supported software for describing and comparing microbial communities. Applied and Environmental Microbiology 75:7537–7541.
