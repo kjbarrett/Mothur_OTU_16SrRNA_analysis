@@ -1,4 +1,4 @@
-### Replace text between {} on lines 4, 8, & 11
+### Replace text between {} on lines 4, 8, & 11. Save as a .txt file for slurm script. 
 
 # Prep files for processing and make contigs
 make.file(inputdir={input directory}, type=fastq, prefix={name})    ### ADD INPUT DIRECTORY AND FILE NAMES
