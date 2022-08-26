@@ -1,0 +1,1181 @@
+---
+title: "Stinson Phyloseq - Analysis of Illumina MiSeq (PE250) data"
+output: html_notebook
+editor_options: 
+  chunk_output_type: console
+---
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>. To run R code, click the little green play button in the top right of the code chunk. When you execute code within the notebook, the results appear beneath the code. 
+
+
+# STEP 0: Installations
+
+First, let's create a directory that we'll work in -- make a new directory that is separate from the Mothur OTU analysis. Set dirPath as the path to your user scratch folder. If you need help finding the path, you can first type the command "getwd()" in the Console, copy the output back into the Console without sending it, and then navigate up or down the directories until you find your Desktop by hitting Tab.
+```{r create directory}
+# getwd()
+dirPath <- "/scratch/users/kjavi/stinsonfinal"
+
+dir.create(paste0(dirPath, "Stinson_OTU_phyloseq"))
+```
+
+## Install required R packages and 16S training set
+
+First, we need to install the R packages we'll be using in our analysis. We'll be downloading our packages from two repositories: Bioconductor and CRAN. Instead of hitting the green "play" button on the chunk, open a terminal Sherlock session, run "module load math R/4.1.2" in the command line, then "R". Then run each line of the following code chunk line by line.
+```{r install packages}
+# Install BiocManager if missing
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install(version = "3.14") # specify BiocManager v.3.14
+
+# Install Bioconductor packages
+BiocManager::install("phyloseq", version = "3.14") # (v.1.38.0)
+BiocManager::install("ShortRead", version = "3.14") # (v.1.52.0)
+
+# Install CRAN packages
+install.packages("ggplot2") # (v.3.3.5)
+install.packages("Hmisc")  # (v.4.6-0)
+install.packages("dplyr") # (v.1.0.7)
+install.packages("tidyr") # (v.1.1.4)
+install.packages("reshape2")
+```
+
+Now, let's load the packages and confirm that they're loaded properly by checking our session info. After the following chunk runs, inspect the output under "other attached packages" and make sure that all the packages we specified (as well as the correct version as indicated in the comment code above!) are attached. Also, check the first line of the output and confirm that you're using R version 4.1.2 or more recent.
+```{r confirm installation}
+library(ShortRead)
+library(ggplot2)
+library(phyloseq)
+library(Hmisc)
+library(reshape2)
+library(dplyr)
+library(tidyr)
+library(RColorBrewer)
+
+sessionInfo()
+
+pretty_plot <- theme_classic() + theme(
+  text = element_text(family = "Arial", color = "black"),
+  plot.margin = margin(0.5,0.5,0.5,0.5, "cm"),
+  axis.line.x.bottom = element_line(color = "black", size = 0.5),
+  axis.line.y.left = element_line(color = "black", size = 0.5),
+  panel.border = element_rect(colour="black", fill = NA, size = 0.5),
+  strip.background = element_blank(),
+  strip.text = element_text(size = 12),
+  panel.grid.major = element_blank(),
+  panel.grid.minor = element_blank(),
+  plot.title = element_text(size = 15),
+  axis.title = element_text(size = 12), 
+  axis.text.y = element_text(size = 12, color = "#000000"),
+  axis.text.x = element_text(size = 12, color = "#000000"))
+```
+
+### Import results from running mothur
+```{r}
+# Set path to phyloseq folder
+dirPath <- "/scratch/users/kjavi/stinsonfinal/"
+
+sharedfile = "stinson.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.opti_mcc.shared"
+taxfile = "stinson.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.opti_mcc.0.03.cons.taxonomy"
+metafile = "Stinson_16S_metadata_v2.txt"
+
+mothur_data <- import_mothur(mothur_shared_file = paste0(dirPath, sharedfile), mothur_constaxonomy_file = paste0(dirPath, taxfile))
+
+sample_metadata <- read.table(file = paste0(dirPath, metafile),
+                         header = TRUE)# ,
+                         # row.names = 1) 
+
+sample_metadata$id <- apply(sample_metadata[c("id")], 1, FUN = function(x) gsub("-", "_", x))
+
+sample_metadata <- sample_data(sample_metadata)
+rownames(sample_metadata) <- sample_metadata$id #assign rownames of metadata to be sample ID's
+
+ps <- merge_phyloseq(mothur_data, sample_metadata) # phyloseq object
+
+# Rename column names in taxonomy
+colnames(tax_table(ps)) <- c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus")
+
+# Print sample names
+sample_names(ps)
+```
+
+## Inspect negative controls
+
+Let's take a look at the composition of our negative controls -- that is, the field, extraction, and PCR blanks.
+```{r plot negative controls}
+# Print rank names by which we can color our plot
+rank_names(ps)
+
+# Create abundance plots for our negative controls colored by type of negative
+psNegatives <- subset_samples(ps, type %in% c("field-blank", "kitome-blank", "seq-blank"))
+p_neg <- plot_bar(psNegatives,
+         fill = "type") +
+  
+  geom_bar(stat = "identity") +
+  scale_y_continuous(limits = c(0, max(sample_sums(psNegatives)) + 500),
+                     breaks = c(seq(0, max(sample_sums(psNegatives)) + 500, 5000)),
+                     expand = c(0,0)) +
+  
+  ylab("Library size (reads)") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Create directory for saved figures
+dir.create(paste0(dirPath, "/figures"))
+
+# Save DNA relative abundance
+ggsave(filename = paste0(dirPath, "/figures", "/neg_library_sizes.png"),
+       plot = p_neg,
+       device = "png",
+       units = "cm",
+       width = 35, # alter if needed
+       height = 20, # alter if needed
+       dpi = 300)#,
+       #useDingbats=FALSE)
+```
+
+It looks like we had a few negative controls that had a significant number of reads. Let's take a closer look and see how many OTUs in total were in them and how many reads each OTU had.
+```{r inspect negatives}
+# Return OTU table of sequences in blanks
+psNegatives %>%
+  subset_samples(type %in% c("field-blank", "kitome-blank", "seq-blank")) %>%
+  prune_taxa(taxa_sums(.) > 0, .) %>%
+  otu_table %>%
+  as.data.frame %>%
+  View
+```
+
+Plot the relative abundances of OTUs for the PCR and no-RT (RNA) blanks.
+```{r relative abundance in negatives}
+psExplore <- subset_samples(ps, type %in% c("field-blank", "kitome-blank", "seq-blank")) %>%
+  prune_taxa(taxa_sums(.) > 0, .)
+
+lib = data.frame(sort(sample_sums(psExplore))) # library size
+write.csv(lib, file = paste0(dirPath, "library_size_negatives.csv"))
+
+p_blank <- plot_bar(psExplore %>% 
+                subset_samples(type %in% c("kitome-blank", "field-blank", "seq-blank")) %>%
+                transform_sample_counts(., function(x) 100*x/sum(x)),
+              fill = "Phylum") +
+  
+  geom_bar(stat = "identity") +
+  scale_y_continuous(limits = c(0, 105),
+                     breaks = c(seq(0, 100, 20)),
+                     expand = c(0,0)) +
+  
+  ylab("Relative abundance (%)") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggsave(filename = paste0(dirPath, "/figures", "/neg_phylum.png"),
+       plot = p_blank,
+       device = "png",
+       units = "cm",
+       width = 35, # alter if needed
+       height = 20, # alter if needed
+       dpi = 300)#,
+       #useDingbats=FALSE)
+```
+
+Many of the OTUs in our blanks only had 1 or a few reads across our blanks. Calling these true contaminants and removing them from our samples would be too strict, particularly due to [index hopping](https://www.illumina.com/techniques/sequencing/ngs-library-prep/multiplexing/index-hopping.html). Let's simply define contaminants as OTUs with >=10 reads across blanks. Let's check their relative abundance in our actual samples that have sufficient library sizes (defined as >=1000 reads).
+```{r plot contaminant relative abundances}
+# Set contaminant read threshold
+thresh <- 10
+
+# Extract names of ASVs in negatives with >=thresh reads
+negative_taxa <- psNegatives %>%
+  prune_taxa(taxa_sums(.) >= thresh, .) %>%
+  taxa_names
+
+contaminants <- plot_bar(prune_samples(sample_sums(ps) >= 1000, ps) %>%
+           subset_samples(., c(type %in% c("field-blank", "kitome-blank", "seq-blank"))) %>%
+           transform_sample_counts(.,function(x) 100 * x/sum(x)) %>%
+           prune_taxa(negative_taxa, .),
+         fill = "type") +
+  
+  geom_bar(stat = "identity") +
+  scale_y_continuous(limits = c(0, 102),
+                     breaks = c(seq(0, 100, 20)),
+                     expand = c(0,0)) +
+  
+  ylab("Relative abundance (%)") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggsave(filename = paste0(dirPath, "/figures", "/neg_contaminants.png"),
+       plot = contaminants,
+       device = "png",
+       units = "cm",
+       width = 35, # alter if needed
+       height = 20, # alter if needed
+       dpi = 300)#,
+       #useDingbats=FALSE)
+```
+
+Remove OTUs from all samples that have >=10 reads summed across the blanks. This cutoff is somewhat arbitrary and is a quick way for us to address reads in our blanks. However, there are formal tools such as [decontam](https://benjjneb.github.io/decontam/vignettes/decontam_intro.html) and [microDecon](https://doi.org/10.1002/edn3.11) that have been designed for decontaminating samples when blanks are sequenced.
+```{r remove contaminant ASVs}
+# Set contaminant read threshold
+thresh <- 10
+
+# Extract list of lab pairings
+batch_list <- unique(sample_data(psNegatives)$type)
+
+# Create phyloseq object that will contain filtered ASV table
+psNegativeFilt <- ps
+
+# Loop through each pair's samples and remove contaminating ASVs
+for(batch in batch_list) {
+  # Retrieve sample names to filter
+  samples_to_filt <- ps %>%
+    subset_samples(type == batch) %>%
+    sample_names
+  
+  # Retrieve ASV names to remove
+  asvs_to_filt <- ps %>%
+    subset_samples(type == batch) %>%
+    prune_taxa(taxa_sums(.) >= thresh, .) %>%
+    taxa_names
+  
+  # Retrieve corresponding row and column indices in ASV table
+  x <- match(samples_to_filt, sample_names(psNegativeFilt))
+  y <- match(asvs_to_filt, taxa_names(psNegativeFilt))
+  
+  # Set reads to zero
+  otu_table(psNegativeFilt)[y,x] <- 0 
+}
+```
+
+And let's confirm that these contaminating OTUs were indeed zeroed out from their corresponding samples.
+```{r check contaminent filtering}
+for(batch in batch_list) {
+  # Retrieve OTU names we removed
+  negative_taxa <- subset_samples(psNegatives, type == batch) %>%
+    prune_taxa(taxa_sums(.) >= thresh, .) %>%
+    taxa_names
+  
+  # Sum OTU reads
+  filt_read_sum <- subset_samples(psNegativeFilt, type == batch) %>%
+    prune_taxa(negative_taxa, .) %>%
+    taxa_sums(.) %>%
+    sum
+  
+  print(paste0(batch, " has ", filt_read_sum, " reads from decontaminated OTUs."))
+}
+```
+
+Now, let's remove OTUs that were only observed once across all samples -- these are often referred to as "singletons". Some groups additionally filter by setting a minimum number of samples an OTU must be present in -- this is called filtering by "prevalence".
+```{r remove singletons}
+# Remove singletons
+psSingletonFilt <- prune_taxa(taxa_sums(psNegativeFilt) > 1, psNegativeFilt)
+
+# Calculate % of OTUs remaining
+perc_asv_remain <- round(ncol(otu_table(psSingletonFilt))/ncol(otu_table(psNegativeFilt))*100, 1)
+print(paste0(perc_asv_remain, "% OTUs remain after singleton filtering."))
+
+# Calculate % of reads remaining
+perc_read_remain <- round(sum(taxa_sums(psSingletonFilt))/sum(taxa_sums(psNegativeFilt))*100, 1)
+print(paste0(perc_read_remain, "% reads remain after singleton filtering."))
+```
+
+
+## Inspect technical replicates
+
+Lastly, let's look at how similar the technical replicates are for the two samples sequenced in duplicate.
+```{r compare replicate similarity}
+# Extract sample data of replicate samples
+replicate_data <- sample_data(subset_samples(psSingletonFilt, date %in% c("2/23/22", "2/24/22") & salinity %in% c(11.3, 2.40)))
+
+# Loop through pairs and calculate Bray-Curtis dissimilarity
+for(x in 1:nrow(replicate_data)) {
+  beta <- subset_samples(psSingletonFilt, salinity == replicate_data$salinity[x] & date == replicate_data$date[x]) %>%
+    transform_sample_counts(., function(x) x/sum(x)) %>%
+    phyloseq::distance(., method = "bray", type = "sample")
+  
+  replicate_data$beta[x] <- beta
+}
+
+# Inspect beta diversity estimates
+beta = replicate_data[order(replicate_data$date),]
+
+write.csv(beta, file = paste0(dirPath, "technical_replicate_dissimilarity.csv"))
+```
+
+Some of our technical replicates appear to be **extremely** dissimilar. Let's see if this has something to do with library sizes.
+```{r check library sizes}
+# Create relative abundance plots for our mock communities colored by Phylum
+psTechRep <- subset_samples(psSingletonFilt, salinity %in% replicate_data$salinity & date %in% replicate_data$date)
+
+sort(sample_sums(psTechRep))
+```
+
+And finally, let's plot up the relative abundances in our technical replicates.
+```{r plot relative abundances}
+tech_rep <- plot_bar(psTechRep %>% 
+           transform_sample_counts(., function(x) 100*x/sum(x)),
+         fill = "Phylum") +
+  
+  geom_bar(stat = "identity") +
+  facet_grid(~date, scales = "free") + 
+
+  scale_y_continuous(limits = c(0, 102),
+                     breaks = c(seq(0, 100, 20)),
+                     expand = c(0,0)) +
+  
+  ylab("Relative abundance (%)") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+ggsave(filename = paste0(dirPath, "/figures", "/techreps_phylum.png"),
+       plot = tech_rep,
+       device = "png",
+       units = "cm",
+       width = 35, # alter if needed
+       height = 20, # alter if needed
+       dpi = 300)#,
+       #useDingbats=FALSE)
+```
+
+
+```{r ordinate}
+# Perform PCoA dimensionality reduction
+psDR <- psTechRep %>%
+  prune_samples(sample_sums(.) >= 1000, .) %>%
+  transform_sample_counts(., function(x) log(1 + x))
+
+ord <- phyloseq::ordinate(psDR, method = "PCoA", distance = "bray")
+
+# Check scree plot
+scree_plot <- plot_scree(ord)
+
+# Plot ordination
+ord_plot <- plot_ordination(psDR, ord, color = "date") +
+  theme_bw() +
+  geom_point(alpha = 0.7, size = 5)
+
+ggsave(filename = paste0(dirPath, "/figures", "/techreps_scree.png"),
+       plot = scree_plot,
+       device = "png",
+       units = "cm",
+       width = 35, # alter if needed
+       height = 20, # alter if needed
+       dpi = 300)#,
+       #useDingbats=FALSE)
+
+ggsave(filename = paste0(dirPath, "/figures", "/techreps_beta.png"),
+       plot = ord_plot,
+       device = "png",
+       units = "cm",
+       width = 35, # alter if needed
+       height = 20, # alter if needed
+       dpi = 300)#,
+       #useDingbats=FALSE)
+```
+
+
+## Plot relative abundances
+
+Now, let's explore community composition of our actual samples. To do this, let's first create a new phyloseq object that only contains one replicate from each sample and excludes mocks and blanks.
+```{r filter samples}
+# Filter and subset samples
+psExplore <- subset_samples(psSingletonFilt, type %in% c("porewater", "sand", "seawater") & replicate == 1) %>%
+  prune_taxa(taxa_sums(.) > 0, .)
+```
+
+Let's see how many reads are in each sample.
+```{r sum sample reads}
+sample_sums(psExplore)
+```
+
+And let's also calculate Bray-Curtis dissimilarities between our biological replicates. >> we don't have biological replicates, therefore just look at location replicates
+```{r calculate biological replicate dissimilarity}
+# Normalize to simple proportions and calculate dissimilarity
+beta_div <- psExplore %>%
+  prune_samples(sample_sums(.) >= 1000, .) %>%
+  transform_sample_counts(., function(x) x/sum(x)) %>%
+  phyloseq::distance(., method = "bray", type = "sample") %>%
+  as.matrix
+
+# Set values in upper triangle incl. diagonal to NA
+beta_div[upper.tri(beta_div, diag = TRUE)] <- NA
+
+# Melt and rename
+mtx <- beta_div %>%
+  melt(., na.rm = TRUE) %>%
+  mutate(date_1 = substr(Var1, 1, 7),
+         date_2 = substr(Var2, 1, 7),
+         location_1 = Var1 %>%
+           as.character %>%
+           strsplit("_") %>%
+           sapply("[", 3),
+         location_2 = Var2 %>%
+           as.character %>%
+           strsplit("_") %>%
+           sapply("[", 3),
+         tide_1 = Var1 %>%
+           as.character %>%
+           strsplit("_") %>%
+           sapply("[", 2),
+         tide_2 = Var2 %>%
+           as.character %>%
+           strsplit("_") %>%
+           sapply("[", 2)) %>%
+  filter(location_1 == location_2) %>%
+  arrange(date_1, tide_1, location_1) %>%
+  select("Var1", "Var2", "location_1", "value") %>%
+  rename("sample_1" = "Var1",
+         "sample_2" = "Var2",
+         "location" = "location_1",
+         "bc_dissimilarity" = "value")
+
+mtx
+
+# Export as .csv
+write.csv(mtx, file = paste0(dirPath, "location_replicate_dissimilarity.csv"))
+```
+
+Before we plot up the community compositions, let's clean up the data a bit. We're going to plot the composition at the phylum rank, but some phyla are only present at low relative abundaances in all samples. Including these phyla will clutter our figures and make them hard to read. To clean up the figure, let's identify which phyla are present in >1% relative abundance in **at least** one sample. We'll collapse all other phyla into a group called "Other".
+```{r agglomerate low abundance taxa}
+# Find which phyla are present in >1% relative abundance in at least one sample
+phyla_keep <- psExplore %>%
+  tax_glom(taxrank = "Phylum") %>%
+  transform_sample_counts(., function(x) 100*x/sum(x)) %>%
+  psmelt() %>%
+  filter(Abundance > 1) %>%
+  pull(Phylum) %>%
+  unique
+
+# Rename all other phyla not in this list to "Other"
+'%!in%' <- function(x,y)!('%in%'(x,y))
+tax_table(psExplore)[tax_table(psExplore)[,2] %!in% phyla_keep,2] <- "Other"
+```
+
+Let's plot up the relative abundances from our samples, collapsing all phyla that weren't present in >1% relative abundance into a category called "Other".
+```{r plot DNA relative abundances}
+sample_data(psExplore)$descript <- paste(sample_data(psExplore)$date, sample_data(psExplore)$tide, sep = "_")
+porewater <- plot_bar(psExplore %>% 
+                subset_samples(type == "porewater") %>%
+                transform_sample_counts(., function(x) 100*x/sum(x)),
+              fill = "Phylum", x = "descript") +
+  
+  geom_bar(stat = "identity") +
+  facet_grid(depth~well, scales = "free") + 
+  scale_y_continuous(limits = c(0, 105),
+                     breaks = c(seq(0, 100, 20)),
+                     expand = c(0,0)) +
+  
+  ylab("Relative abundance (%)") + xlab("Sampling Timepoint") +
+  pretty_plot +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+
+ggsave(filename = paste0(dirPath, "/figures", "/porewater_relative_abundance.png"),
+       plot = porewater,
+       device = "png",
+       units = "cm",
+       width = 35,
+       height = 20,
+       dpi = 300)#,
+       #useDingbats=FALSE)
+```
+
+Plot nitrifiers with amoA qPCR data (may need to troubleshoot this figure with Katie)
+```{r plot DNA relative abundances}
+nitrifiers <- plot_bar(psExplore %>% 
+                subset_samples(type == "porewater") %>%
+                transform_sample_counts(., function(x) 100*x/sum(x)) %>%
+                subset_taxa(Phylum %in% c("Crenarchaeota", "Nitrospirota")), # %>%
+              fill = "Class", x = "descript") +
+  
+  geom_bar(stat = "identity") + geom_point(aes(y=as.numeric(amoA)/250), size = 2, shape = 1) + 
+  facet_grid(depth~well, scales = "free") + 
+  scale_y_continuous(limits = c(0, 20),
+                     breaks = c(seq(0, 20, 2)),
+                     expand = c(0,0),
+                     name = "Relative abundance (%)",
+                     sec.axis = sec_axis(~.*250, name="amoA Concentration (gc/mL)")) +
+  
+  xlab("Sampling Timepoint") +
+  pretty_plot +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+
+ggsave(filename = paste0(dirPath, "/figures", "/porewater_nitrifiers_rel_abund.png"),
+       plot = nitrifiers,
+       device = "png",
+       units = "cm",
+       width = 35,
+       height = 20,
+       dpi = 400)
+
+```
+
+Let's plot up the relative abundances from our cDNA samples, collapsing all phyla that weren't present in >1% relative abundance into a category called "Other".
+```{r plot cDNA relative abundances}
+sand_sw <- plot_bar(psExplore %>% 
+                     subset_samples(type %in% c("sand", "seawater")) %>%
+                     transform_sample_counts(., function(x) 100*x/sum(x)),
+                   fill = "Phylum") +
+  
+  geom_bar(stat = "identity") +
+  facet_grid(~type, scales = "free") + 
+  scale_y_continuous(limits = c(0, 105),
+                     breaks = c(seq(0, 100, 20)),
+                     expand = c(0,0)) +
+  
+  ylab("Relative abundance (%)") +
+  pretty_plot +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+
+sandsw_N <- plot_bar(psExplore %>% 
+                subset_samples(type %in% c("sand", "seawater")) %>%
+                transform_sample_counts(., function(x) 100*x/sum(x)) %>%
+                subset_taxa(Phylum %in% c("Crenarchaeota", "Nitrospirota")), # %>%
+              fill = "Class") +
+  
+  geom_bar(stat = "identity") +
+  facet_grid(~type, scales = "free") + 
+  scale_y_continuous(limits = c(0, 20),
+                     breaks = c(seq(0, 20, 5)),
+                     expand = c(0,0)) +
+  
+  ylab("Relative abundance (%)") + 
+  pretty_plot +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+
+# Well 3 only relative abundance
+porewater_3 <- plot_bar(psExplore %>% 
+                subset_samples(well == 3) %>%
+                transform_sample_counts(., function(x) 100*x/sum(x)) %>%
+                subset_taxa(Phylum %in% c("Crenarchaeota", "Nitrospirota")), # %>%
+              fill = "Class") +
+  
+  geom_bar(stat = "identity") +
+  facet_grid(depth~well, scales = "free") + 
+  scale_y_continuous(limits = c(0, 21),
+                     breaks = c(seq(0, 20, 5)),
+                     expand = c(0,0)) +
+  
+  ylab("Relative abundance (%)") + 
+  pretty_plot +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) # + 
+  # theme(legend.position = "none") + 
+  # guides(color = guide_legend(ncol = 3, byrow = TRUE))
+
+ggsave(filename = paste0(dirPath, "/figures", "/sandseawater_relative_abundance.png"),
+       plot = sand_sw,
+       device = "png",
+       units = "cm",
+       width = 35,
+       height = 20,
+       dpi = 300)#,
+       #useDingbats=FALSE)
+
+ggsave(filename = paste0(dirPath, "/figures", "/sandseawater_nitrifiers_rel_abund.png"),
+       plot = sandsw_N,
+       device = "png",
+       units = "cm",
+       width = 35,
+       height = 20,
+       dpi = 300)
+
+ggsave(filename = paste0(dirPath, "/figures", "/porewater_well3_nitrifiers_rel_abund.png"),
+      plot = porewater_3,
+      device = "png",
+      units= "in",
+      width = 4,
+      height = 8,
+      dpi = 300)
+  
+```
+## Well 3 Nitrifiers
+```{r}
+nitrification_3 <- plot_bar(psExplore %>% 
+                subset_samples(well == 3) %>%
+                transform_sample_counts(., function(x) 100*x/sum(x)) %>%
+                subset_taxa(Phylum %in% c("Crenarchaeota", "Nitrospirota", "Nitrospinota")), # %>%
+              fill = "Class", x = "descript") +
+  
+  geom_bar(stat = "identity") +
+  facet_grid(depth~well, scales = "free") + 
+  scale_y_continuous(limits = c(0, 16),
+                     breaks = c(seq(0, 15, 5)),
+                     expand = c(0,0)) +
+  
+  ylab("Relative abundance (%)") + 
+  pretty_plot +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) # , legend.position = "none")
+
+ggsave(filename = paste0(dirPath, "/figures", "/well3_nitrifiers_rel_abund.png"),
+      plot = nitrification_3,
+      device = "png",
+      units= "in",
+      width = 4,
+      height = 8,
+      dpi = 300)
+  
+```
+# Well 3 Denitrifiers
+```{r}
+denitrification_3 <- plot_bar(psExplore %>% 
+                subset_samples(well == 3) %>%
+                transform_sample_counts(., function(x) 100*x/sum(x)) %>%
+                subset_taxa(Phylum %in% c("Chloroflexi", "DBT120")), # & (Family %in% c("Arcobacteraceae", "Sulfurimonadaceae"))), # %>%
+              fill = "Class", x = "descript") +
+  
+  geom_bar(stat = "identity") +
+  facet_grid(depth~well, scales = "free") + 
+  scale_y_continuous(limits = c(0, 21),
+                     breaks = c(seq(0, 20, 5)),
+                     expand = c(0,0)) +
+  
+  ylab("Relative abundance (%)") + 
+  pretty_plot +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1), legend.position = "none") 
+
+ggsave(filename = paste0(dirPath, "/figures", "/well3_denitrifiers_rel_abund.png"),
+      plot = denitrification_3,
+      device = "png",
+      units= "in",
+      width = 4,
+      height = 8,
+      dpi = 300)
+```
+# Well 3 Sulfate Reducers
+```{r}
+sulfate_3 <- plot_bar(psExplore %>% 
+                subset_samples(well == 3) %>%
+                transform_sample_counts(., function(x) 100*x/sum(x)) %>%
+                subset_taxa(Phylum %in% c("Desulfobacterota")), # & (Family %in% c("Sulfurospirillaceae"))), # %>%
+              fill = "Class", x = "descript") +
+  
+  geom_bar(stat = "identity") +
+  facet_grid(depth~well, scales = "free") + 
+  scale_y_continuous(limits = c(0, 21),
+                     breaks = c(seq(0, 20, 5)),
+                     expand = c(0,0)) +
+  
+  ylab("Relative abundance (%)") + 
+  pretty_plot +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1), legend.position = "none") 
+
+ggsave(filename = paste0(dirPath, "/figures", "/well3_sulfate_rel_abund.png"),
+      plot = sulfate_3,
+      device = "png",
+      units= "in",
+      width = 4,
+      height = 8,
+      dpi = 300)
+```
+# Well 3 Methanogens. Low abundance, all filtered out. 
+```{r}
+methanogen_3 <- plot_bar(ps %>% 
+                # subset_samples(well == 3) %>%
+                transform_sample_counts(., function(x) 100*x/sum(x)) %>%
+                subset_taxa(Phylum %in% c("Halobacterota", "Euryarchaeota")), # & (Family %in% c("Arcobacteraceae", "Sulfurimonadaceae"))), # %>%
+              fill = "Phylum") +
+  
+  geom_bar(stat = "identity") +
+  facet_grid(depth~well, scales = "free") + 
+  scale_y_continuous(limits = c(0, 21),
+                     breaks = c(seq(0, 20, 5)),
+                     expand = c(0,0)) +
+  
+  ylab("Relative abundance (%)") + 
+  pretty_plot +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1)) 
+
+ggsave(filename = paste0(dirPath, "/figures", "/well3_methanogen_rel_abund.png"),
+      plot = methanogen_3,
+      device = "png",
+      units= "in",
+      width = 4,
+      height = 8,
+      dpi = 300)
+```
+
+
+
+
+## Alpha diversity and beta diversity/ordination
+
+Let's now take a look at alpha diversity in our samples. We'll use the Shannon index as our alpha diversity metric, though you could use others. Some alpha diversity estimators apparently use singletons in their model, so if you look closely, we are creating a new phyloseq object from the contaminant-cleaned, but *not* singleton-cleaned, phyloseq object. Here we'll look at alpha diversity in our DNA samples, only looking at samples with >=1000 reads.
+```{r plot DNA alpha diversity}
+# Create new phyloseq object
+psAlpha <- subset_samples(psNegativeFilt, type %in% c("porewater", "sand", "seawater") & replicate == 1) %>%
+  prune_taxa(taxa_sums(.) > 0, .)
+sample_data(psAlpha)$type[sample_data(psAlpha)$type=="porewater"] <- "Porewater"
+sample_data(psAlpha)$type[sample_data(psAlpha)$type=="sand"] <- "Sand"
+sample_data(psAlpha)$type[sample_data(psAlpha)$type=="seawater"] <- "Seawater"
+
+# Add new metadata variable corresponding to incubation number
+sample_data(psAlpha)$location <- sample_names(psAlpha) %>%
+           as.character %>%
+           strsplit("_") %>%
+           sapply("[", 3)#substr(sample_data(psAlpha)$sample, 1, 1)
+sample_data(psAlpha)$location[sample_data(psAlpha)$location %in% c("A", "B", "S")] <- "Sand"
+sample_data(psAlpha)$location <- factor(sample_data(psAlpha)$location, levels = c("W1D1", "W2D1", "W3D1", "W4D1", "W1D2", "W2D2", "W3D2", "W4D2", "W1D3", "W2D3", "W3D3", "W4D3", "W1D4", "W2D4", "W3D4", "W4D4", "Sand", "SW"))
+
+# Plot alpha diversity
+alpha <- psAlpha %>%
+  prune_samples(sample_sums(.) >= 1000, .) %>%
+  plot_richness(x = "location", measures = "Shannon") +
+    facet_grid(~type, scales = "free", space = "free") +
+    
+    scale_y_continuous(limits = c(0, 9),
+                       breaks = c(seq(0, 9, 1)),
+                       expand = c(0,0)) +
+    
+    ylab("Shannon Diversity Index") + xlab("Location") +
+    pretty_plot
+
+ggsave(filename = paste0(dirPath, "/figures", "/alpha_diversity.png"),
+       plot = alpha,
+       device = "png",
+       units = "cm",
+       width = 26.25,
+       height = 15,
+       dpi = 300)#,
+       #useDingbats=FALSE)
+```
+
+Let's take a look at how many OTUs were present in each of our in situ samples.
+```{r count in situ OTUs}
+# Subset to just in situ samples
+psIS <- psExplore %>%
+  subset_samples(., type == "porewater")
+
+# Sum number of non-zero OTUs in each sample
+apply(otu_table(psIS) > 0, 2, sum)
+```
+
+```{r ordinate}
+sample_data(psExplore)$location <- sample_names(psExplore) %>%
+           as.character %>%
+           strsplit("_") %>%
+           sapply("[", 3)
+sample_data(psExplore)$location[sample_data(psExplore)$location %in% c("A", "B", "S")] <- "Sand"
+
+# Perform PCoA dimensionality reduction for well 4 samples
+psDR <- psExplore %>%
+  subset_samples(well == 4) %>%
+  prune_samples(sample_sums(.) >= 1000, .) %>%
+  transform_sample_counts(., function(x) log(1 + x))
+
+ord <- phyloseq::ordinate(psDR, method = "PCoA", distance = "bray")
+
+# Check scree plot
+plot_scree(ord)
+sample_data(psDR)$depth <- factor(sample_data(psDR)$depth)
+# Plot ordination
+ord_plot <- plot_ordination(psDR, ord, color = "descript", shape = "depth") + 
+  theme_bw() +
+  geom_point(alpha = 0.7, size = 5) 
+
+ggsave(filename = paste0(dirPath, "/figures", "/well4_bc_pcoa.png"),
+       plot = ord_plot,
+       device = "png",
+       units = "cm",
+       width = 35,
+       height = 20,
+       dpi = 300)#,
+       #useDingbats=FALSE)
+
+### well 3
+psDR <- psExplore %>%
+  subset_samples(well == 3) %>%
+  prune_samples(sample_sums(.) >= 1000, .) %>%
+  transform_sample_counts(., function(x) log(1 + x))
+
+ord <- phyloseq::ordinate(psDR, method = "PCoA", distance = "bray")
+
+# Check scree plot
+plot_scree(ord)
+sample_data(psDR)$depth <- factor(sample_data(psDR)$depth)
+# Plot ordination
+ord_plot <- plot_ordination(psDR, ord, color = "descript", shape = "depth") + # add shape = replicate
+  theme_bw() +
+  geom_point(alpha = 0.7, size = 5) 
+
+ggsave(filename = paste0(dirPath, "/figures", "/well3_bc_pcoa.png"),
+       plot = ord_plot,
+       device = "png",
+       units = "cm",
+       width = 35,
+       height = 20,
+       dpi = 300)#,
+       #useDingbats=FALSE)
+
+### well 2
+psDR <- psExplore %>%
+  subset_samples(well == 2) %>%
+  prune_samples(sample_sums(.) >= 1000, .) %>%
+  transform_sample_counts(., function(x) log(1 + x))
+
+ord <- phyloseq::ordinate(psDR, method = "PCoA", distance = "bray")
+
+# Check scree plot
+plot_scree(ord)
+sample_data(psDR)$depth <- factor(sample_data(psDR)$depth)
+# Plot ordination
+ord_plot <- plot_ordination(psDR, ord, color = "descript", shape = "depth") + # add shape = replicate
+  theme_bw() +
+  geom_point(alpha = 0.7, size = 5) 
+
+ggsave(filename = paste0(dirPath, "/figures", "/well2_bc_pcoa.png"),
+       plot = ord_plot,
+       device = "png",
+       units = "cm",
+       width = 35,
+       height = 20,
+       dpi = 300)#,
+       #useDingbats=FALSE)
+
+### well 1
+psDR <- psExplore %>%
+  subset_samples(well == 1) %>%
+  prune_samples(sample_sums(.) >= 1000, .) %>%
+  transform_sample_counts(., function(x) log(1 + x))
+
+ord <- phyloseq::ordinate(psDR, method = "PCoA", distance = "bray")
+
+# Check scree plot
+plot_scree(ord)
+sample_data(psDR)$depth <- factor(sample_data(psDR)$depth)
+# Plot ordination
+ord_plot <- plot_ordination(psDR, ord, color = "descript", shape = "depth") + # add shape = replicate
+  theme_bw() +
+  geom_point(alpha = 0.7, size = 5) 
+
+ggsave(filename = paste0(dirPath, "/figures", "/well1_bc_pcoa.png"),
+       plot = ord_plot,
+       device = "png",
+       units = "cm",
+       width = 35,
+       height = 20,
+       dpi = 300)#,
+       #useDingbats=FALSE)
+
+# Perform PCoA dimensionality reduction
+psDR <- psExplore %>%
+  subset_samples(type == "sand") %>%
+  prune_samples(sample_sums(.) >= 1000, .) %>%
+  transform_sample_counts(., function(x) log(1 + x))
+
+sample_data(psDR)$sample_name <- row.names(sample_data(psDR))
+
+ord <- phyloseq::ordinate(psDR, method = "PCoA", distance = "bray")
+
+# Check scree plot
+plot_scree(ord)
+
+# Plot ordination
+ord_plot <- plot_ordination(psDR, ord, color = "sample_name") + # add shape = replicate
+  theme_bw() +
+  geom_point(alpha = 0.7, size = 5) 
+
+ggsave(filename = paste0(dirPath, "/figures", "/sand_bc_pcoa.png"),
+       plot = ord_plot,
+       device = "png",
+       units = "cm",
+       width = 35,
+       height = 20,
+       dpi = 300)#,
+       #useDingbats=FALSE)
+
+# combine DNA and cDNA
+psDR <- psExplore %>%
+  subset_samples(well != 5) %>%
+  prune_samples(sample_sums(.) >= 1000, .) %>%
+  transform_sample_counts(., function(x) log(1 + x))
+
+ord <- phyloseq::ordinate(psDR, method = "PCoA", distance = "bray")
+
+# Check scree plot
+plot_scree(ord)
+
+sample_data(psDR)$well[sample_data(psDR)$well == 0] <- "Seawater"
+sample_data(psDR)$well[sample_data(psDR)$well == 5] <- "Sand"
+sample_data(psDR)$depth[sample_data(psDR)$depth == 0] <- "Seawater"
+sample_data(psDR)$depth[sample_data(psDR)$depth == 1 & sample_data(psDR)$well == "Sand"] <- "Surface"
+sample_data(psDR)$depth[sample_data(psDR)$depth == 2 & sample_data(psDR)$well == "Sand"] <- "Auger"
+sample_data(psDR)$depth[sample_data(psDR)$depth == 3 & sample_data(psDR)$well == "Sand"] <- "Bottom"
+
+# Plot ordination
+ord_plot <- plot_ordination(psDR, ord, color = "depth", shape = "well") + 
+  theme_bw() + scale_color_brewer(palette="Dark2") +
+  geom_point(alpha = 0.7, size = 5) 
+
+ggsave(filename = paste0(dirPath, "/figures", "/all_samples_bc_pcoa.png"),
+       plot = ord_plot,
+       device = "png",
+       units = "cm",
+       width = 17.5,
+       height = 10,
+       dpi = 300)#,
+       #useDingbats=FALSE)
+```
+
+Overlay alpha diversity plot with environmental data arrows -- the rest of the code is just a variety of different variations of plotting that I did with the ASV data. Go through and try out different things.
+```{r}
+psDR_not_na <- psDR #%>%
+  #subset_samples(
+   # !is.na(salinity) & 
+    #!is.na(nitrite) &
+     # !is.na(nitrate) & 
+      #!is.na(ammonia) & 
+      #!is.na(DO) & 
+      #!is.na(descript) &
+      #!is.na(location)
+  #)
+    
+bray_not_na <- phyloseq::distance(physeq = psDR_not_na, method = "bray")
+
+                            
+# CAP ordinate
+cap_ord <- ordinate(
+    physeq = psDR_not_na, 
+    method = "PCoA", #"CAP",
+    distance = "bray",  #bray_not_na,
+    formula = ~ salinity + nitrite + nitrate + ammonia + DO #+ location + descript ### Alter to pick out different metadata parameters -- if NAs are present, there will be issues 
+)
+
+# CAP plot
+cap_plot <- plot_ordination(
+  physeq = psDR_not_na, 
+  ordination = cap_ord, 
+    color = "depth", shape = "well",
+    axes = c(1,2)
+) + 
+    aes(shape = well) + 
+    geom_point(aes(colour = depth), alpha = 0.4, size = 4) + 
+    geom_point(colour = "grey90", size = 1.5) + 
+    scale_color_manual(values = c("#a65628", "red", "#ffae19", "#4daf4a", 
+        "#1919ff", "darkorchid3", "magenta", "blue")
+    ) + pretty_plot
+
+
+# Now add the environmental variables as arrows
+arrowmat <- vegan::scores(cap_ord, display = "bp")
+
+# Add labels, make a data.frame
+arrowdf <- data.frame(labels = rownames(arrowmat), arrowmat)
+
+# Define the arrow aesthetic mapping
+arrow_map <- aes(xend = -0.4*CAP1, 
+    yend = -0.4*CAP2, 
+    x = 0, 
+    y = 0, 
+    shape = NULL, 
+    color = NULL, 
+    label = labels)
+
+label_map <- aes(x = -0.45 * CAP1, 
+    y = -0.45 * CAP2, 
+    shape = NULL, 
+    color = NULL, 
+    label = labels)
+
+arrowhead = arrow(length = unit(0.02, "npc"))
+
+# Make a new graphic
+alpha_plot <- cap_plot + 
+  geom_segment(
+    mapping = arrow_map, 
+    size = .5, 
+    data = arrowdf, 
+    color = "gray", 
+    arrow = arrowhead
+  ) + 
+  geom_text(
+    mapping = label_map, 
+    size = 4,  
+    data = arrowdf, 
+    show.legend = FALSE
+  ) 
+
+ggsave(filename = paste0(dirPath, "/figures", "/all_bc_pcoa_arrows.png"),
+       plot = alpha_plot,
+       device = "png",
+       units = "cm",
+       width = 35,
+       height = 20,
+       dpi = 300)#,
+       #useDingbats=FALSE)
+```
+
+```{r}
+psDR_not_na <- psDR %>%
+  subset_samples( type == "porewater" ### Alter to plot different subsets of samples
+   # !is.na(salinity) & 
+    #!is.na(nitrite) &
+     # !is.na(nitrate) & 
+      #!is.na(ammonia) & 
+      #!is.na(DO) & 
+      #!is.na(descript) &
+      #!is.na(location)
+  )
+    
+bray_not_na <- phyloseq::distance(physeq = psDR_not_na, method = "bray")
+
+                            
+# CAP ordinate
+cap_ord <- ordinate(
+    physeq = psDR_not_na, 
+    method = "CAP",
+    distance = bray_not_na,
+    formula = ~ well + depth
+)
+
+# CAP plot
+cap_plot <- plot_ordination(
+  physeq = psDR_not_na, 
+  ordination = cap_ord, 
+    color = "depth", shape = "well",
+    axes = c(1,2)
+) + 
+    aes(shape = well) + 
+    geom_point(aes(colour = depth), alpha = 0.4, size = 4) + 
+    geom_point(colour = "grey90", size = 1.5) + 
+    scale_color_manual(values = c("#a65628", "red", "#ffae19", "#4daf4a", 
+        "#1919ff", "darkorchid3", "magenta", "blue")
+    ) + pretty_plot
+
+
+# Now add the environmental variables as arrows
+arrowmat <- vegan::scores(cap_ord, display = "bp")
+
+# Add labels, make a data.frame
+arrowdf <- data.frame(labels = rownames(arrowmat), arrowmat)
+
+# Define the arrow aesthetic mapping
+arrow_map <- aes(xend = CAP1, 
+    yend = CAP2, 
+    x = 0, 
+    y = 0, 
+    shape = NULL, 
+    color = NULL, 
+    label = labels)
+
+label_map <- aes(x = 1.3 * CAP1, 
+    y = 1.3 * CAP2, 
+    shape = NULL, 
+    color = NULL, 
+    label = labels)
+
+arrowhead = arrow(length = unit(0.02, "npc"))
+
+# Make a new graphic
+alpha_plot <- cap_plot + 
+  geom_segment(
+    mapping = arrow_map, 
+    size = .5, 
+    data = arrowdf, 
+    color = "gray", 
+    arrow = arrowhead
+  ) + 
+  geom_text(
+    mapping = label_map, 
+    size = 4,  
+    data = arrowdf, 
+    show.legend = FALSE
+  ) + scale_color_brewer(palette="Dark2") 
+
+ggsave(filename = paste0(dirPath, "/figures", "/all_bc_pcoa_arrows_location.png"),
+       plot = alpha_plot,
+       device = "png",
+       units = "cm",
+       width = 35,
+       height = 20,
+       dpi = 300)#,
+       #useDingbats=FALSE)
+```
+
+Individual wells
+```{r}
+psDR_not_na <- psDR %>%
+  subset_samples( well == 3
+   # !is.na(salinity) & 
+    #!is.na(nitrite) &
+     # !is.na(nitrate) & 
+      #!is.na(ammonia) & 
+      #!is.na(DO) & 
+      #!is.na(descript) &
+      #!is.na(location)
+  )
+    
+bray_not_na <- phyloseq::distance(physeq = psDR_not_na, method = "bray")
+
+                            
+# CAP ordinate
+cap_ord <- ordinate(
+    physeq = psDR_not_na, 
+    method = "CAP",
+    distance = bray_not_na,
+    formula = ~ depth + salinity
+)
+
+sample_data(psDR_not_na)$`Timepoint` <- sample_data(psDR_not_na)$descript
+sample_data(psDR_not_na)$`Depth` <- sample_data(psDR_not_na)$depth
+# CAP plot
+cap_plot <- plot_ordination(
+  physeq = psDR_not_na, 
+  ordination = cap_ord, 
+    color = "Timepoint", shape = "Depth",
+    axes = c(1,2)
+) + 
+    aes(shape = Depth) + 
+    geom_point(aes(colour = Timepoint), alpha = 0.4, size = 4) + 
+    geom_point(colour = "grey90", size = 1.5) + 
+    #scale_color_manual(values = c("#a65628", "red", "#ffae19", "#4daf4a", 
+     #   "#1919ff", "darkorchid3", "magenta", "blue")) + 
+    pretty_plot
+
+
+# Now add the environmental variables as arrows
+arrowmat <- vegan::scores(cap_ord, display = "bp")
+
+# Add labels, make a data.frame
+arrowdf <- data.frame(labels = rownames(arrowmat), arrowmat)
+arrowdf["depth2", "labels"] <- "Depth 2"; arrowdf
+arrowdf["depth3", "labels"] <- "Depth 3"; arrowdf
+arrowdf["depth4", "labels"] <- "Depth 4"; arrowdf
+arrowdf["salinity", "labels"] <- "Salinity"; arrowdf
+
+# Define the arrow aesthetic mapping
+arrow_map <- aes(xend = CAP1, 
+    yend = CAP2, 
+    x = 0, 
+    y = 0, 
+    shape = NULL, 
+    color = NULL, 
+    label = labels)
+
+label_map <- aes(x = 1.4 * CAP1, 
+    y = 1.4 * CAP2, 
+    shape = NULL, 
+    color = NULL, 
+    label = labels)
+
+arrowhead = arrow(length = unit(0.02, "npc"))
+
+# Make a new graphic
+alpha_plot <- cap_plot + 
+  geom_segment(
+    mapping = arrow_map, 
+    size = .5, 
+    data = arrowdf, 
+    color = "gray", 
+    arrow = arrowhead
+  ) + 
+  geom_text(
+    mapping = label_map, 
+    size = 4,  
+    data = arrowdf, 
+    show.legend = FALSE
+  )
+
+ggsave(filename = paste0(dirPath, "/figures", "/all_bc_CAP_well3.png"),
+       plot = alpha_plot,
+       device = "png",
+       units = "cm",
+       width = 35,
+       height = 20,
+       dpi = 300)#,
+       #useDingbats=FALSE)
+```
