@@ -1,4 +1,4 @@
-### Replace text between {} on lines 4, 8, & 11. 
+### Replace text between {} on lines 6, 10, & 13. 
 ### Save as a .txt file for slurm script. 
 ### Make sure your conda environment is active.
 
